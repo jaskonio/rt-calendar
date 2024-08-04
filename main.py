@@ -1,4 +1,3 @@
-import json
 import pandas as pd
 import streamlit as st
 from domain.event_from_document import EventFromDocument
@@ -25,8 +24,7 @@ if uploaded_file is not None:
         edited_df = st.data_editor(df)
 
         if st.button("Load to Calendar"):
-            credentials = st.secrets['google_api_key']
-            credentials = json.loads(credentials)
+            credentials = st.secrets['google']['credential']
             uploader = GoogleCalendar(credentials)
             title = title.strip()
 

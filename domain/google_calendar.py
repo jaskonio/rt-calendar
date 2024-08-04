@@ -1,13 +1,9 @@
 from datetime import datetime, timedelta
-import os
-import pickle
 from typing import List
-from google.auth.transport.requests import Request
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from domain.utils import datetime_to_timezone, numpy_date_to_datetime
-
+from google.oauth2 import service_account
 
 class GoogleCalendar():
     SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -17,25 +13,10 @@ class GoogleCalendar():
     service = None
 
     def __init__(self, credentials) -> None:
-        self.start_service(credentials)
+        self.connect(credentials)
 
-    def start_service(self, credentials):
-        creds = None
-
-        if os.path.exists('token.pickle'):
-            with open('token.pickle', 'rb') as token:
-                creds = pickle.load(token)
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_config(credentials, self.SCOPES)
-                creds = flow.run_local_server(port=0)
-
-            with open('token.pickle', 'wb') as token:
-                pickle.dump(creds, token)
-
+    def connect(self, credentials):
+        creds = service_account.Credentials.from_service_account_info(credentials, scopes=self.SCOPES)
         self.service = build("calendar", "v3", credentials=creds)
 
     def load_events_to_calendar(self, events_training:List[dict], new_calendar_name: str | None):

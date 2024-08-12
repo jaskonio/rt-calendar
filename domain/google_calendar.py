@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta
+import os
 from typing import List
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from domain.utils import datetime_to_timezone, numpy_date_to_datetime
-from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+
 
 class GoogleCalendar():
     SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -16,7 +20,29 @@ class GoogleCalendar():
         self.connect(credentials)
 
     def connect(self, credentials):
-        creds = service_account.Credentials.from_service_account_info(credentials, scopes=self.SCOPES)
+        """Connection with google api
+
+        Args:
+            credentials (_type_): _description_
+        """
+        creds = None
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", self.SCOPES)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_config(credentials, self.SCOPES)
+                creds = flow.run_local_server(port=0)
+
+        # Save the credentials for the next run
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+
         self.service = build("calendar", "v3", credentials=creds)
 
     def load_events_to_calendar(self, events_training:List[dict], new_calendar_name: str | None):
@@ -29,7 +55,7 @@ class GoogleCalendar():
                 self.__insert_event_into_calendar(event_training, calendar_dict)
                 print(f"Created event title: {event_training['title']}\n")
 
-                return True
+            return True
 
         except HttpError as error:
             print(f"ERROR To load Events")

@@ -22,15 +22,44 @@ class DocumentDocx():
             return None
 
     def get_start_end_date(self):
+        """_summary_
+
+        Returns:
+            list[str]: ['29 de Julio', '11 de Agosto', '2024']
+        """
         try:
             ## Get Start/End Date
-            date_paragraph = self.document.paragraphs[1].runs[14].text.strip()
+            date_paragraph = ''
+
+            for content in self.document.paragraphs[1].runs:
+                if 'del' in content.text.strip():
+                    date_paragraph = content.text.strip()
+
+            if date_paragraph == '':
+                return 'Data not found in document'
 
             regex = r'\(del\s(\d{1,2}\sde\s\w+\s)al(\s\d{1,2}\sde\s\w+)(\s\d{4})\)'
             string_dates = re.findall(regex, date_paragraph, re.IGNORECASE)
-            string_dates = string_dates[0]
+            start_date = ''
+            end_date = ''
+            year = ''
 
-            return [string_dates[0].strip(), string_dates[1].strip(), string_dates[2].strip()]
+            if len(string_dates) != 0:
+                string_dates = string_dates[0]
+                start_date = string_dates[0].strip()
+                end_date = string_dates[1].strip()
+                year = string_dates[2].strip()
+            else:
+                # Only month
+                regex = r'\(del\s(\d{1,2})\sal\s(\d{1,2})\sde\s(\w+)\s(\d{4})\)'
+                string_dates = re.findall(regex, date_paragraph, re.IGNORECASE)
+                string_dates = string_dates[0]
+
+                start_date = f'{string_dates[0]} de {string_dates[2]}'
+                end_date = f'{string_dates[1]} de {string_dates[2]}'
+                year = str(string_dates[3])
+
+            return [start_date, end_date, year]
         except Exception as error:
             print(f"ERROR get_start_end_date")
             print(error)
